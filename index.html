@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upload Sheet → Make.com</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    body { display: grid; place-items: center; min-height: 100svh; margin: 0; background: #f7f7f8; }
+    .card { width: min(560px, 92vw); background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 10px 28px rgba(0,0,0,.08); }
+    h1 { margin: 0 0 8px; font-size: 1.25rem; }
+    p { margin: 0 0 16px; color: #444; }
+    .row { display: grid; gap: 12px; margin: 16px 0; }
+    label { font-weight: 600; }
+    input[type="text"], input[type="file"] { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; }
+    button { appearance: none; border: 0; background: #111827; color: #fff; padding: 12px 16px; border-radius: 12px; font-weight: 600; cursor: pointer; }
+    .hint { font-size: 12px; color: #666; }
+    .ok { color: #065f46; font-weight: 600; }
+    .err { color: #b91c1c; font-weight: 600; }
+    .footer { margin-top: 10px; font-size: 12px; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Send an Excel file to your Make.com scenario</h1>
+    <p>Upload your Google Sheet as an <strong>.xlsx (Excel)</strong> file. This form posts the file to your Make <em>Custom webhook</em>.</p>
+
+    <!--
+      👉 HOW TO USE
+      1) In Make.com, create a Scenario with module #1 = "Webhooks > Custom webhook" (Catch hook).
+      2) Copy the unique webhook URL and paste it into the action URL below (replace YOUR_WEBHOOK_URL).
+      3) Publish this page (e.g., GitHub Pages, Netlify) and open it in a browser.
+      4) Choose your XLSX file and click "Send to Make".
+
+      Notes:
+      • This is a classic HTML form POST (multipart/form-data). No JS fetch is used, so CORS is not an issue.
+      • In Make, the file arrives under the webhook's "file" collection (filename, mime_type, data).
+      • To process XLSX in Make, you can use a converter or Excel app module as part of your scenario.
+    -->
+
+    <form id="uploader" action="https://hook.us2.make.com/3t7snm4hjsbq9i1g42xkes8ku98j1kpa" method="POST" enctype="multipart/form-data" target="_blank">
+      <div class="row">
+        <label for="sheetName">Optional name / tag</label>
+        <input id="sheetName" name="sheet_name" type="text" placeholder="e.g., Sales_Q3_2025" />
+        <span class="hint">This will appear as a separate field in your webhook bundle.</span>
+      </div>
+
+      <div class="row">
+        <label for="file">Spreadsheet file</label>
+        <input id="file" name="file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+        <span class="hint">Only <strong>XLSX</strong> files are allowed. Tip: In Google Sheets, use File → Download → Microsoft Excel (.xlsx).</span>
+      </div>
+
+      <button type="submit">Send to Make</button>
+      <div class="footer">Submitting opens a new tab with your Make webhook response.</div>
+    </form>
+
+    <p id="status" class="hint" aria-live="polite" style="margin-top:12px"></p>
+
+    <script>
+      // Tiny client‑side validation (optional)
+      const form = document.getElementById('uploader');
+      const fileInput = document.getElementById('file');
+      const status = document.getElementById('status');
+
+      form.addEventListener('submit', (e) => {
+        const f = fileInput.files[0];
+        if (!f) { status.textContent = 'Please choose a file.'; e.preventDefault(); return; }
+        if (!f.name.endsWith('.xlsx')) { status.textContent = 'Only .xlsx files are allowed.'; status.className = 'err'; e.preventDefault(); return; }
+        if (f.size > 20 * 1024 * 1024) { // 20 MB soft check
+          e.preventDefault();
+          status.className = 'err';
+          status.textContent = 'File is larger than 20 MB. Consider splitting into smaller sheets.';
+          return;
+        }
+        status.className = 'ok';
+        status.textContent = 'Uploading… Your Make webhook will open in a new tab.';
+      });
+
+      // Prevent accidental submit if webhook URL wasn't set
+      (function ensureWebhook() {
+        const url = document.querySelector('form').getAttribute('action');
+        if (!url || url.includes('YOUR_WEBHOOK_URL')) {
+          status.className = 'err';
+          status.textContent = '⚠️ Set your Make webhook URL in the <form action="…"> attribute before using this page.';
+        }
+      })();
+    </script>
+  </div>
+</body>
+</html>
